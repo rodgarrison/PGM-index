@@ -169,7 +169,10 @@ public:
      * Constructs the index on the given sorted vector.
      * @param data the vector of keys to be indexed, must be sorted
      */
-    explicit PGMIndex(const std::vector<K> &data) : PGMIndex(data.begin(), data.end()) {}
+    explicit PGMIndex(const std::vector<K> &data) : PGMIndex(data.begin(), data.end())
+    {
+      printf("PGMIndex epsilon=%lu\n", epsilon_value);
+    }
 
     /**
      * Constructs the index on the sorted keys in the range [first, last).
