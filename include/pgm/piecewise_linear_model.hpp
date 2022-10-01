@@ -25,13 +25,8 @@
 #include <utility>
 #include <vector>
 
-#ifdef _OPENMP
-#include <omp.h>
-#else
-#pragma message ("Compilation with -fopenmp is optional but recommended")
 #define omp_get_num_procs() 1
 #define omp_get_max_threads() 1
-#endif
 
 namespace pgm::internal {
 

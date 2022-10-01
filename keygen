@@ -1,0 +1,17 @@
+#!/usr/bin/python3
+
+import sys
+import string
+import random
+
+i=0
+prefixSize=9
+count=1000000
+
+letters = string.ascii_letters
+
+while i<count:
+  prefix="SHN"
+  key = ''.join(random.choice(letters) for i in range(prefixSize))
+  print("{0}{1}".format(prefix, key))
+  i=i+1
