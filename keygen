@@ -10,6 +10,11 @@ count=1000000
 
 letters = string.ascii_letters
 
+if len(sys.argv)>1:
+  count = int(sys.argv[1])
+
+sys.stderr.write("creating {0} keys...\n".format(count))
+
 while i<count:
   prefix="SHN"
   key = ''.join(random.choice(letters) for i in range(prefixSize))
