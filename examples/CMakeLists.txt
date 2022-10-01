@@ -2,6 +2,8 @@ set(examples
         mapped
         multiset
         simple
+        ext_simple
+        file_simple
         updates)
 
 foreach (example ${examples})
