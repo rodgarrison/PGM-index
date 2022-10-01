@@ -139,7 +139,7 @@ void dynamicBenchmark(std::vector<std::pair<__int128_t, u_int32_t>>& data, std::
   double nsPerOp = elapsedNs/(double)data.size();
   double opsPerSec = 1000000000.0 / nsPerOp;
   double ratio = (double)index.size_in_bytes()/((double)data.size()*sizeof(__int128_t));
-  printf("make: elapsedNs: %10lf, ns/op: %lf, ops/sec: %lf, itemsInContainer: %lu, indexSizeBytes: %lu, indexRatio: %lf\n",
+  printf("make: elapsedNs: %10lf, ns/op: %lf, ops/sec: %lf, itemsInContainer: %lu, containerSizeBytes: %lu, containerRatio: %lf\n",
     elapsedNs, nsPerOp, opsPerSec, data.size(), index.size_in_bytes(), ratio);
 
   errors = 0;
@@ -205,6 +205,7 @@ int main(int argc, char **argv) {
     readKeys("../test.txt", &data);
     readKeys("../search.txt", &search);
 
+    benchmark<1>(data, search);
     benchmark<2>(data, search);
     benchmark<4>(data, search);
     benchmark<8>(data, search);
@@ -220,6 +221,7 @@ int main(int argc, char **argv) {
     readKeyPairs("../test.txt", &data);
     readKeys("../search.txt", &search);
 
+    dynamicBenchmark<1>(data, search);
     dynamicBenchmark<2>(data, search);
     dynamicBenchmark<4>(data, search);
     dynamicBenchmark<8>(data, search);
