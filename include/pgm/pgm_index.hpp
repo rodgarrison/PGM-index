@@ -63,7 +63,7 @@ struct ApproxPos {
  */
 template<typename K, size_t Epsilon = 64, size_t EpsilonRecursive = 4, typename Floating = float>
 class PGMIndex {
-protected:
+public:
     template<typename, size_t, size_t, uint8_t, typename>
     friend class BucketingPGMIndex;
 
@@ -77,6 +77,15 @@ protected:
     K first_key;                        ///< The smallest element.
     std::vector<Segment> segments;      ///< The segments composing the index.
     std::vector<size_t> levels_offsets; ///< The starting position of each level in segments[], in reverse order.
+
+    void print() {
+      for (unsigned i=0; i<segments.size(); ++i) {
+        printf("segment %u: m: %16.15lf, b: %d, key: %lu\n", i, segments[i].slope, segments[i].intercept, segments[i].key);
+      }
+      for (unsigned i=0; i<levels_offsets.size(); ++i) {
+        printf("level %u: start position in segment %lu\n", i, levels_offsets[i]);
+      }
+    }
 
     template<typename RandomIt>
     static void build(RandomIt first, RandomIt last,
@@ -137,9 +146,12 @@ protected:
         }
 
         auto it = segments.begin() + *(levels_offsets.end() - 2);
+        printf("startSegment: m: %16.15lf, b: %d, key: %lu from segmentOffset: %lu\n", it->slope, it->intercept, it->key, *(levels_offsets.end() - 2));
+
         for (auto l = int(height()) - 2; l >= 0; --l) {
             auto level_begin = segments.begin() + levels_offsets[l];
             auto pos = std::min<size_t>((*it)(key), std::next(it)->intercept);
+            printf("search: level: %d  segmentAtLevel: m: %16.15lf, b: %d, key: %lu, pos: %lu\n", l, level_begin->slope, level_begin->intercept, level_begin->key, pos);
             auto lo = level_begin + PGM_SUB_EPS(pos, EpsilonRecursive + 1);
 
             static constexpr size_t linear_search_threshold = 8 * 64 / sizeof(Segment);
@@ -153,6 +165,7 @@ protected:
                 it = std::prev(std::upper_bound(lo, hi, key));
             }
         }
+        printf("\n");
         return it;
     }
 

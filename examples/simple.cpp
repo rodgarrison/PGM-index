@@ -17,7 +17,7 @@ timespec endTime;
 timespec startTime;                                                                                                     
 volatile unsigned errors(0);
 
-int k_SIZE=10000000;                                                                                              
+int k_SIZE=1000;                                                                                              
 
 void usageAndExit() {
   printf("example_simple [-n <int>]\n");
@@ -56,6 +56,7 @@ void benchmark(std::vector<uint64_t>& data, std::vector<uint64_t>& search) {
   timespec_get(&startTime, TIME_UTC);                                                                                 
   pgm::PGMIndex<uint64_t, N> index(data);
   timespec_get(&endTime, TIME_UTC);                                                                                   
+  index.print();
 
   double elapsedNs = (double)endTime.tv_sec*1000000000.0+(double)endTime.tv_nsec -                                    
                      ((double)startTime.tv_sec*1000000000.0+(double)startTime.tv_nsec);                                 
@@ -66,7 +67,8 @@ void benchmark(std::vector<uint64_t>& data, std::vector<uint64_t>& search) {
     elapsedNs, nsPerOp, opsPerSec, k_SIZE, index.size_in_bytes(), ratio);
 
   timespec_get(&startTime, TIME_UTC);                                                                                 
-  for (unsigned i=0; i<search.size(); ++i) {                                                                            
+  for (unsigned i=0; i<data.size(); ++i) {                                                                            
+    printf("searching for data[%u]=%lu\n", i, data[i]); 
     auto range = index.search(search[i]);
     // give compiler something to do with range so not optimized out
     errors += range.lo;
@@ -92,11 +94,17 @@ int main(int argc, char **argv) {
     std::generate(search.begin(), search.end(), std::rand);
 
     std::sort(data.begin(), data.end());
+    for (unsigned i=0; i<data.size(); ++i) {
+      printf("data[%u]=%lu\n", i, data[i]);
+    }
 
+/*
     benchmark<1>(data, search);
     benchmark<2>(data, search);
     benchmark<4>(data, search);
+*/
     benchmark<8>(data, search);
+/*
     benchmark<16>(data, search);
     benchmark<32>(data, search);
     benchmark<64>(data, search);
@@ -105,6 +113,7 @@ int main(int argc, char **argv) {
     benchmark<512>(data, search);
     benchmark<1024>(data, search);
     benchmark<2048>(data, search);
+*/
 
     return 0;
 }

@@ -1,5 +1,5 @@
 set(examples
-        file_simple)
+        simple)
 
 foreach (example ${examples})
     add_executable(example_${example} ${example}.cpp)
