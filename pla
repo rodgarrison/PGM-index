@@ -29,11 +29,12 @@ def plotRawKeys():
 
 def usageAndExit():
   print
-  print("usage: pla [-f <file> -p <int> -b <int> -B <int> -v]")
+  print("usage: pla [-f <file> -p <int> -e <int> -r -v]")
   print
   print("       -f <file>   string key <file> one per line. default '{0}'".format(Config['KEY_FILE']))
   print("       -p <int>    maximum key size 's' in characters 1<=s<=16. default {0}".format(Config['MAX_KEY_SIZE']))
-  print("       -r          graph raw input integer keys then exit")
+  print("       -e <int>    epsilon error 'e' for linear apporximation 1<=e<=256. Must be power of 2. default {0}".format(Config['EPSILON']))
+  print("       -r          graph raw input integer keys; close graph window to continue")
   print("       -v          verbose mode . repeat for more detail");
   print
   sys.exit(2)
@@ -41,7 +42,7 @@ def usageAndExit():
 def parseCommandLine():
   global Config
   try:
-    opts, args = getopt.getopt(sys.argv[1:],"f:p:vr")
+    opts, args = getopt.getopt(sys.argv[1:],"f:p:e:vr")
     for o, a in opts:
       if o in ('-f'):
         Config['KEY_FILE']=a
@@ -50,6 +51,14 @@ def parseCommandLine():
         if val<1 or val>16:
           usageAndExit()
         Config['MAX_KEY_SIZE']=val
+      elif o in ('-e'):
+        val = int(a)
+        if val<1 or val>256:
+          usageAndExit()
+        ok = val & (val-1)
+        if ok!=0:
+          usageAndExit()
+        Config['EPSILON']=4
       elif o in ('-v'):
         Config['VERBOSE']=Config['VERBOSE']+1
       elif o in ('-r'):
@@ -100,8 +109,17 @@ def strintToInteger(key):
 
 def readKeys():
   global Config
+
+  last=0
   rawKeys=[]
+  readOne=False
   for line in Config['FIN']:
+    val = strintToInteger(line.strip())
+    if readOne==False:
+      readOne=True
+      last = val
+    elif val<=last:
+      fatal("keys not unqiue sorted: '{0}' value {1} <= {2} last key".format(line.strip(), val, last))
     rawKeys.append(strintToInteger(line.strip()))
   Config['RAW_KEYS']=rawKeys
 
@@ -109,11 +127,12 @@ def setConfigDefaults():
   global Config
   # set defaults
   Config['FIN']=None
-  Config['KEY_FILE']='./poc.txt'
-  Config['MAX_KEY_SIZE']=16
   Config['VERBOSE']=0
-  Config['PLOT_RAW_KEYS']=False
+  Config['EPSILON']=4
   Config['RAW_KEYS']=[]
+  Config['MAX_KEY_SIZE']=16
+  Config['PLOT_RAW_KEYS']=False
+  Config['KEY_FILE']='./poc.txt'
 
 if __name__ == "__main__":
   setConfigDefaults()
@@ -123,5 +142,4 @@ if __name__ == "__main__":
 
   if Config['PLOT_RAW_KEYS']==True:
     plotRawKeys()
-    sys.exit(0)
 
