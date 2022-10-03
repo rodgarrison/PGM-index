@@ -1,0 +1,121 @@
+#!/usr/bin/python3
+
+import sys
+import getopt
+import numpy as np
+import matplotlib.pyplot as plt
+
+Config={}
+
+def usageAndExit():
+  print
+  print("usage: pla [-f <file> -p <int> -b <int> -B <int> -v]")
+  print
+  print("       -f <file>   key <file> one per line. default '{0}'".format(Config['KEY_FILE']))
+  print("       -p <int>    maximum key size 's' in characters 1<=s<=16. default {0}".format(Config['MAX_KEY_SIZE']))
+  print("       -b <int>    smallest ASCII value 'b' for characters in key 0<=b<=255. default '{0}' = {1}".format(
+    Config['KEY_CHAR_MIN'], ord(Config['KEY_CHAR_MIN'])))
+  print("       -B <int>    largest  ASCII value 'B' for characters in key b<B<=255. default '{0}' = {1}".format(
+    Config['KEY_CHAR_MAX'], ord(Config['KEY_CHAR_MAX'])))
+  print("       -v          verbose mode . repeat for more detail");
+  print
+  sys.exit(2)
+
+def parseCommandLine():
+  global Config
+  try:
+    opts, args = getopt.getopt(sys.argv[1:],"f:p:b:B:v")
+    for o, a in opts:
+      if o in ('-f'):
+        Config['KEY_FILE']=a
+      elif o in ('-p'):
+        val = int(a)
+        if val<1 or val>16:
+          usageAndExit()
+        Config['MAX_KEY_SIZE']=val
+      elif o in ('-b'):
+        val = int(a)
+        if val<0 or val>255:
+          usageAndExit()
+        Config['KEY_CHAR_MIN']=val
+      elif o in ('-B'):
+        val = int(a)
+        if val<=Config['KEY_CHAR_MIN'] or val>255:
+          usageAndExit()
+        Config['KEY_CHAR_MAX']=val
+      elif o in ('-v'):
+        Config['VERBOSE']=Config['VERBOSE']+1
+      else:
+        usageAndExit()
+  except (getopt.error):
+    usageAndExit()
+  except ValueError as e:
+    print(e)
+    usageAndExit()
+
+  try:
+    Config['FIN'] = open(Config['KEY_FILE'], "r")
+  except IOError as e:
+    print(e)
+    usageAndExit()
+
+  if Config['FIN'] is None:
+    usageAndExit()
+
+  Config['BASE'] = ord(Config['KEY_CHAR_MAX'])-ord(Config['KEY_CHAR_MIN'])-1
+
+def strintToInteger(key):
+  base = Config['BASE']
+  maxLen = Config['MAX_KEY_SIZE'] 
+  minChar = ord(Config['KEY_CHAR_MIN'])
+
+  i = len(key)
+  if i>maxLen:
+    i = maxLen
+  # right-most-char
+  i = i-1
+
+  val = 0
+  pow = 0
+
+  # convert string right-to-left
+  while i>=0:
+    val = val + base**pow*(ord(key[i])-minChar)
+    pow = pow+1
+    i = i-1
+
+  if Config['VERBOSE']==True:
+    print("key={0} val={1}".format(key, val))
+
+  return val
+
+def readKeys():
+  for line in Config['FIN']:
+    strintToInteger(line.strip())
+
+def setConfigDefaults():
+  global Config
+  # set defaults
+  Config['FIN']=None
+  Config['KEY_FILE']='./test.txt'
+  Config['MAX_KEY_SIZE']=16
+  Config['KEY_CHAR_MIN']='A'
+  Config['KEY_CHAR_MAX']='z'
+  Config['BASE'] = ord(Config['KEY_CHAR_MAX'])-ord(Config['KEY_CHAR_MIN'])-1
+  Config['VERBOSE']=1
+
+if __name__ == "__main__":
+  setConfigDefaults()
+  parseCommandLine()
+  if Config['VERBOSE']==True:
+    print(Config)
+
+  readKeys()
+
+# x = range(50)
+# y = range(50) + np.random.randint(0,30,50)
+# plt.scatter(x, y)
+# plt.title('Simple Scatter plot')
+# plt.xlabel('X - value')
+# plt.ylabel('Y - value')
+# plt.show()
