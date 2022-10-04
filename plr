@@ -1,0 +1,197 @@
+#!/usr/bin/python3
+
+import sys
+import getopt
+import numpy as np
+import decimal as dec
+import matplotlib.pyplot as plt
+
+Config={}
+
+def warn(msg):
+  print("WARN : {0}".format(msg))
+
+def fatal(msg):
+  print("FATAL: {0}".format(msg))
+  sys.exit(1)
+
+def plotRawKeys():
+  x = range(0, len(Config['RAW_KEYS']))
+  y = Config['RAW_KEYS']
+  plt.ylim(y[0], y[len(y)-1])
+  if Config['LN_SCALE']==True:
+    plt.yticks(np.arange(y[0], y[len(y)-1], step=dec.Decimal(0.00000000000001)))
+  plt.scatter(x, y)
+  plt.title('Rank v. Raw Key Value')
+  plt.xlabel('Rank')
+  plt.ylabel('Raw Key value')
+  plt.show()
+
+def setConfigDefaults():
+  global Config
+  # set defaults
+  Config['FIN']=None
+  Config['VERBOSE']=0
+  Config['EPSILON']=4
+  Config['RAW_KEYS']=[]
+  Config['MAX_KEY_SIZE']=16
+  Config['PLOT_RAW_KEYS']=False
+  Config['KEY_FILE']='./poc.txt'
+  Config['LN_SCALE']=False
+
+def usageAndExit():
+  print
+  print("usage: pla [-f <file> -p <int> -e <int> -r -l -v]")
+  print
+  print("       -f <file>   string key <file> one per line. default '{0}'".format(Config['KEY_FILE']))
+  print("       -p <int>    maximum key size 's' in characters 1<=s<=16. default {0}".format(Config['MAX_KEY_SIZE']))
+  print("       -e <int>    epsilon error 'e' for linear apporximation 1<=e<=256. Must be power of 2. default {0}".format(Config['EPSILON']))
+  print("       -r          graph raw input integer keys; close graph window to continue")
+  print("       -l          scale raw input integer keys 'k' by ln(k) after read")
+  print("       -v          verbose mode . repeat for more detail");
+  print
+  sys.exit(2)
+
+def parseCommandLine():
+  global Config
+  try:
+    opts, args = getopt.getopt(sys.argv[1:],"f:p:e:rlv")
+    for o, a in opts:
+      if o in ('-f'):
+        Config['KEY_FILE']=a
+      elif o in ('-p'):
+        val = int(a)
+        if val<1 or val>16:
+          usageAndExit()
+        Config['MAX_KEY_SIZE']=val
+      elif o in ('-e'):
+        val = int(a)
+        if val<1 or val>256:
+          usageAndExit()
+        ok = val & (val-1)
+        if ok!=0:
+          usageAndExit()
+        Config['EPSILON']=4
+      elif o in ('-v'):
+        Config['VERBOSE']=Config['VERBOSE']+1
+      elif o in ('-l'):
+        Config['LN_SCALE']=True
+      elif o in ('-r'):
+        Config['PLOT_RAW_KEYS']=True
+      else:
+        usageAndExit()
+  except (getopt.error):
+    usageAndExit()
+  except ValueError as e:
+    print(e)
+    usageAndExit()
+
+  try:
+    Config['FIN'] = open(Config['KEY_FILE'], "r")
+  except IOError as e:
+    print(e)
+    usageAndExit()
+
+  if Config['FIN'] is None:
+    usageAndExit()
+
+def strintToInteger(key):
+  l = len(key)
+
+  if l==0:
+    fatal("key '{0}' empty".format(key))
+
+  if l>Config['MAX_KEY_SIZE']:
+    l = Config['MAX_KEY_SIZE']
+
+  i=0
+  valHexArray=[]
+
+  while i<l:
+    valHexArray.append("%02x" % ord(key[i]))
+    i=i+1
+
+  hex = "".join(valHexArray)
+  val = int(hex, 16)
+
+  if Config['VERBOSE']==True:
+    print("rawKey={0} base16=0x{1} base10={2}".format(key, hex, val))
+
+  return val
+
+def readKeys():
+  global Config
+
+  rawKeys=[]
+  readOne=False
+  last=dec.Decimal(0)
+
+  for line in Config['FIN']:
+    val = strintToInteger(line.strip())
+    if readOne==False:
+      readOne=True
+      last = val
+    elif val<=last:
+      fatal("keys not unqiue sorted: '{0}' value {1} <= {2} last key".format(line.strip(), val, last))
+    rawKeys.append(dec.Decimal(val))
+    last=val
+  if len(rawKeys)<3:
+    fatal("only {0} valid keys loaded: must be {1} or more\n".format(len(len(rawKeys), 3)))
+  if Config['LN_SCALE']==True:
+    i=0
+    while i<len(rawKeys):
+      rawKeys[i]=rawKeys[i].ln()
+      i=i+1
+  Config['RAW_KEYS']=rawKeys
+
+class Point:
+  def __init__(self, x, y):
+    self.x = dec.Decimal(x)
+    self.y = dec.Decimal(y)
+
+  def __str__(self):
+    return "[x:{0}, y:{1}]".format(self.x, self.y)
+  
+class PLR:
+  # Algorithm taken from [1]:
+  # ---------------------------------------------------------------------
+  # [1] Qing Xie, Chaoyi Pang, Xiaofang Zhou, Xiangliang Zhang, and Ke Deng.
+  # Maximum error-bounded Piecewise Linear Representation for online stream
+  # approximation. The VLDB Journal 23, 6 (December 2014), 915–937. 2014.
+  # DOI: https://doi.org/10.1007/s00778-014-0355-0
+
+  def __init__(self, config):
+    self.rawKeys = config['RAW_KEYS']
+    self.epsilon = dec.Decimal(config['EPSILON'])
+
+  def calcRhoMinMax(self, s0, s1):
+    # Calculation based on [1 pg6] section 4.1 eq2
+    # s0, s1 are two points
+    min = ((s1.y-self.epsilon) - (s0.y+self.epsilon)) / (s1.x - s0.x)
+    max = ((s1.y+self.epsilon) - (s0.y-self.epsilon)) / (s1.x - s0.x)
+    print("{0} {1}".format(min, max))
+    return min, max
+
+  def greedy(self):
+    # prime greedy algo
+    keyIndex = 2
+    s0 = Point(0, self.rawKeys[0])
+    s1 = Point(1, self.rawKeys[1])
+    print(s0)
+    print(s1)
+    rhoMin, rhoMax = self.calcRhoMinMax(s0, s1)
+
+if __name__ == "__main__":
+  setConfigDefaults()
+  parseCommandLine()
+
+  readKeys()
+
+  if Config['VERBOSE']==True:
+    print(Config)
+
+  if Config['PLOT_RAW_KEYS']==True:
+    plotRawKeys()
+
+  plr = PLR(Config)
+  plr.greedy()
