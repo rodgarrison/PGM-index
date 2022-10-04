@@ -5,6 +5,8 @@ import getopt
 import numpy as np
 import decimal as dec
 import matplotlib.pyplot as plt
+import matplotlib.collections  as pltcol
+
 
 Config={}
 
@@ -14,6 +16,16 @@ def warn(msg):
 def fatal(msg):
   print("FATAL: {0}".format(msg))
   sys.exit(1)
+
+def plotExtremalPoints(orig1, orig2, s0, s1, s2, s3):
+  lines = [[(orig1.x,orig1.y), (orig2.x,orig2.y)],
+           [(s0.x,s0.y), (s1.x,s1.y)],
+           [(s2.x,s2.y), (s3.x,s3.y)]]
+  lc = pltcol.LineCollection(lines)
+  fig, ax = plt.subplots()
+  ax.add_collection(lc)
+  ax.autoscale()
+  plt.show()
 
 def plotRawKeys():
   x = range(0, len(Config['RAW_KEYS']))
@@ -153,7 +165,7 @@ class Point:
     return "[x:{0}, y:{1}]".format(self.x, self.y)
   
 class PLR:
-  # Algorithm taken from [1]:
+  # Greedy Algorithm taken from [1]:
   # ---------------------------------------------------------------------
   # [1] Qing Xie, Chaoyi Pang, Xiaofang Zhou, Xiangliang Zhang, and Ke Deng.
   # Maximum error-bounded Piecewise Linear Representation for online stream
@@ -164,21 +176,29 @@ class PLR:
     self.rawKeys = config['RAW_KEYS']
     self.epsilon = dec.Decimal(config['EPSILON'])
 
+  def calcSlope(self, s0, s1):
+    if (s1.x-s0.x)==dec.Decimal(0):
+      fatal("cannot calculate slope for s0: {0}, s1: {1}".format(s0, s1))
+    return (s1.y-s0.y) / (s1.x-s0.x)
+
   def calcRhoMinMax(self, s0, s1):
     # Calculation based on [1 pg6] section 4.1 eq2
     # s0, s1 are two points
-    min = ((s1.y-self.epsilon) - (s0.y+self.epsilon)) / (s1.x - s0.x)
-    max = ((s1.y+self.epsilon) - (s0.y-self.epsilon)) / (s1.x - s0.x)
+    minPoint1 = Point(s0.x, s0.y+self.epsilon)
+    minPoint2 = Point(s1.x, s1.y-self.epsilon)
+    maxPoint1 = Point(s0.x, s0.y-self.epsilon)
+    maxPoint2 = Point(s1.x, s1.y+self.epsilon)
+    minRho = self.calcSlope(minPoint1, minPoint2)
+    maxRho = self.calcSlope(maxPoint1, maxPoint2)
     print("{0} {1}".format(min, max))
+    plotExtremalPoints(s0, s1, minPoint1, minPoint2, maxPoint1, maxPoint2)
     return min, max
 
   def greedy(self):
     # prime greedy algo
-    keyIndex = 2
     s0 = Point(0, self.rawKeys[0])
     s1 = Point(1, self.rawKeys[1])
-    print(s0)
-    print(s1)
+    # prime based on first two points
     rhoMin, rhoMax = self.calcRhoMinMax(s0, s1)
 
 if __name__ == "__main__":
