@@ -56,10 +56,6 @@ private:
         X x{};
         Y y{};
 
-        void print(void) const {                                                                                        
-          std::cout << "[x:" << x << ", y:" << y << "]";                                                                
-        } 
-
         Slope operator-(const Point &p) const { return {SX(x) - p.x, SY(y) - p.y}; }
     };
 
@@ -217,14 +213,6 @@ class OptimalPiecewiseLinearModel<X, Y>::CanonicalSegment {
 
 public:
 
-    void print() const {                                                                                                
-      std::cout << "p0: "; rectangle[0].print(); std::cout << " ";                                                      
-      std::cout << "p1: "; rectangle[1].print(); std::cout << " ";                                                      
-      std::cout << "p2: "; rectangle[2].print(); std::cout << " ";                                                      
-      std::cout << "p3: "; rectangle[3].print(); std::cout << " ";                                                      
-      std::cout << first << std::endl;                                                                                  
-    } 
-
     CanonicalSegment() = default;
 
     X get_first_x() const { return first; }
@@ -297,14 +285,12 @@ size_t make_segmentation(size_t n, size_t epsilon, Fin in, Fout out) {
             continue;
         p = next_p;
         if (!opt.add_point(p.first, p.second)) {
-            opt.get_segment().print();                                                                                  
             out(opt.get_segment());
             opt.add_point(p.first, p.second);
             ++c;
         }
     }
 
-    opt.get_segment().print();                                                                                  
     out(opt.get_segment());
     return ++c;
 }
